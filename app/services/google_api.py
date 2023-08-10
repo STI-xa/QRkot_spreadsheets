@@ -4,7 +4,7 @@ from aiogoogle import Aiogoogle
 
 from app.core.config import settings
 
-FORMAT = "%Y/%m/%d %H:%M:%S"
+FORMAT = '%Y/%m/%d %H:%M:%S'
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
@@ -22,12 +22,12 @@ async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
     response = await wrapper_services.as_service_account(
         service.spreadsheets.create(json=spreadsheet_body)
     )
-    spreadsheetid = response['spreadsheetId']
-    return spreadsheetid
+    spreadsheet_id = response['spreadsheetId']
+    return spreadsheet_id
 
 
 async def set_user_permissions(
-        spreadsheetid: str,
+        spreadsheet_id: str,
         wrapper_services: Aiogoogle
 ) -> None:
     permissions_body = {'type': 'user',
@@ -36,14 +36,14 @@ async def set_user_permissions(
     service = await wrapper_services.discover('drive', 'v3')
     await wrapper_services.as_service_account(
         service.permissions.create(
-            fileId=spreadsheetid,
+            fileId=spreadsheet_id,
             json=permissions_body,
             fields="id"
         ))
 
 
 async def spreadsheets_update_value(
-        spreadsheetid: str,
+        spreadsheet_id: str,
         projects: list,
         wrapper_services: Aiogoogle
 ) -> None:
@@ -54,16 +54,10 @@ async def spreadsheets_update_value(
         ['Топ проектов по скорости закрытия'],
         ['id проекта', 'Название проекта', 'Время сбора', 'Описание']
     ]
-    if projects:
-        for project in projects:
-            delta = project[3] - project[2]
-            new_row = [
-                project[0],
-                str(project[1]),
-                f'{delta.days} day(s)',
-                str(project[2])
-            ]
-            table_values.append(new_row)
+
+    for project in projects:
+        new_row = [project.id, project.name, str(project.close_date - project.create_date), project.description]
+        table_values.append(new_row)
 
     update_body = {
         'majorDimension': 'ROWS',
@@ -71,7 +65,7 @@ async def spreadsheets_update_value(
     }
     await wrapper_services.as_service_account(
         service.spreadsheets.values.update(
-            spreadsheetId=spreadsheetid,
+            spreadsheetId=spreadsheet_id,
             range='A1:E30',
             valueInputOption='USER_ENTERED',
             json=update_body
